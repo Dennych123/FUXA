@@ -1,0 +1,168 @@
+<div class="grid-conta">
+    <div *ngFor="let item of ranges; index as i" class="item">
+        <div *ngIf="isWithRange()">
+            <div *ngIf="slideView" class="item-range">
+                <range-number [range]="item"></range-number>
+            </div>
+            <div *ngIf="isWithRangeColor()" style="display: inline-block;">
+                <div class="my-form-field">
+                    <span>{{'gauges.property-input-color' | translate}}</span>
+                    <input [(colorPicker)]="item.color" [value]="item.color" [style.background]="item.color" [cpPresetColors]="defaultColor" [cpOKButton]="true"
+                        [cpCancelButton]="true" [cpCancelButtonClass]="'cpCancelButtonClass'" [cpCancelButtonText]="'Cancel'" [cpOKButtonText]="'OK'"
+                        [cpOKButtonClass]="'cpOKButtonClass'" class="input-color" style="width:70px;" [cpPosition]="'auto'" [cpAlphaChannel]="'always'"
+                        [cpOutputFormat]="'hex'" />
+                </div>
+                <div class="my-form-field" style="margin-left: 10px;">
+                    <span>{{'gauges.property-input-stroke' | translate}}</span>
+                    <input [(colorPicker)]="item.stroke" [value]="item.stroke" [style.background]="item.stroke" [cpPresetColors]="defaultColor"
+                        [cpOKButton]="true" [cpCancelButton]="true" [cpCancelButtonClass]="'cpCancelButtonClass'" [cpCancelButtonText]="'Cancel'"
+                        [cpOKButtonText]="'OK'" [cpOKButtonClass]="'cpOKButtonClass'" class="input-color" style="width:70px;" [cpPosition]="'auto'"
+                        [cpAlphaChannel]="'always'" [cpOutputFormat]="'hex'" />
+                </div>
+            </div>
+            <div class="item-remove">
+                <button mat-icon-button (click)="onRemoveInput(i)" class="remove">
+                    <mat-icon>clear</mat-icon>
+                </button>
+            </div>
+        </div>
+        <div *ngIf="isMinMax()">
+            <div class="item-minmax">
+                <div class="my-form-field">
+                    <span>{{'gauges.property-input-min' | translate}}</span>
+                    <input numberOnly [(ngModel)]="item.min" type="text" style="width: 80px">
+                </div>
+                <div class="my-form-field" style="padding-left: 20px;">
+                    <span>{{'gauges.property-input-max' | translate}}</span>
+                    <input numberOnly [(ngModel)]="item.max" type="text" style="width: 80px">
+                </div>
+                <div class="my-form-field" style="padding-left: 30px">
+                    <!-- <span>Unit</span>
+                    <input [(ngModel)]="item.text" type="text" style="width: 60px;text-align: center !important"> -->
+                </div>
+                <div class="my-form-field" style="width: 60px;margin-left: 20px;">
+                    <span>{{'gauges.property-input-color' | translate}}</span>
+                    <input [(colorPicker)]="item.color" [style.background]="getColor(item)" [cpPresetColors]="defaultColor" [cpOKButton]="true"
+                        [cpCancelButton]="true" [cpCancelButtonClass]="'cpCancelButtonClass'" [cpCancelButtonText]="'Cancel'" [cpOKButtonText]="'OK'"
+                        [cpOKButtonClass]="'cpOKButtonClass'" class="input-color" style="width:70px;" [cpPosition]="'auto'" [cpAlphaChannel]="'always'" />
+                </div>
+                <!-- <mat-checkbox class="input-minmax-cb" style="padding-left: 30px" [(ngModel)]="withLabel">Range</mat-checkbox> -->
+                <!-- <mat-checkbox class="input-minmax-cb" style="padding-left: 20px" [(ngModel)]="withValue">Value</mat-checkbox> -->
+            </div>
+        </div>
+        <div *ngIf="isWithStep()" class="item-step">
+            <div class="my-form-field">
+                <span>{{'gauges.property-input-value' | translate}}</span>
+                <input numberOnly [(ngModel)]="item.min" type="text" style="width: 100px">
+            </div>
+            <div style="font-size: 18px;width: 11px; display:inline-block;text-align: center;">-</div>
+            <div class="my-form-field">
+                <span>{{'gauges.property-input-label' | translate}}</span>
+                <input [(ngModel)]="item.text" type="text" style="width: 200px;text-align: left !important">
+            </div>
+            <div class="my-form-field" style="margin-left: 20px;">
+                <span>{{'gauges.property-input-color' | translate}}</span>
+                <input [(colorPicker)]="item.color" [style.background]="getColor(item)" [cpPresetColors]="defaultColor" [cpOKButton]="true" [cpCancelButton]="true"
+                    [cpCancelButtonClass]="'cpCancelButtonClass'" [cpCancelButtonText]="'Cancel'" [cpOKButtonText]="'OK'" [cpOKButtonClass]="'cpOKButtonClass'"
+                    class="input-color" style="width:70px;" [cpPosition]="'auto'" [cpAlphaChannel]="'always'" />
+            </div>
+            <div class="my-form-field" style="margin-left: 10px;">
+                <span>{{'gauges.property-input-stroke' | translate}}</span>
+                <input [(colorPicker)]="item.stroke" [value]="item.stroke" [style.background]="item.stroke" [cpPresetColors]="defaultColor" [cpOKButton]="true" [cpCancelButton]="true"
+                    [cpCancelButtonClass]="'cpCancelButtonClass'" [cpCancelButtonText]="'Cancel'" [cpOKButtonText]="'OK'" [cpOKButtonClass]="'cpOKButtonClass'" class="input-color"
+                    style="width:70px;" [cpPosition]="'auto'" [cpAlphaChannel]="'always'" [cpOutputFormat]="'hex'"/>
+            </div>
+            <div class="item-remove">
+                <button mat-icon-button (click)="onRemoveInput(i)" class="remove">
+                    <mat-icon>clear</mat-icon>
+                </button>
+            </div>
+        </div>
+        <div *ngIf="isOutputCtrl()" class="item-unit">
+            <flex-variable #unit [data]="data" (onchange)="onUnitChanged(item, $event)" [variableId]="item.textId" [variableValue]="item.text"
+                [variableLabel]="'gauges.property-input-unit'">
+            </flex-variable>
+            <flex-variable #digits [data]="data" (onchange)="onFormatDigitChanged(item, $event)" [variableId]="item.fractionDigitsId"
+                [variableValue]="item.fractionDigits" [variableLabel]="'gauges.property-format-digits'">
+            </flex-variable>
+        </div>
+        <div *ngIf="isInputMinMax()">
+            <p>{{'gauges.property-input-range' | translate}}</p>
+            <div class="item-minmax">
+                <div class="my-form-field">
+                    <span>{{'gauges.property-input-min' | translate}}</span>
+                    <input numberOnly [(ngModel)]="item.min" type="text" style="width: 80px">
+                </div>
+                <div class="my-form-field" style="padding-left: 20px;">
+                    <span>{{'gauges.property-input-max' | translate}}</span>
+                    <input numberOnly [(ngModel)]="item.max" type="text" style="width: 80px">
+                </div>
+            </div>
+        </div>
+    </div>
+    <div *ngIf="isInputCtrl()" class="mt15">
+        <div class="mt15">
+            <div class="my-form-field" style="width: 140px;">
+            <span>{{'gauges.property-input-type' | translate}}</span>
+            <mat-select [(ngModel)]="property.options.type" (selectionChange)="onTypeChange($event)">
+                <mat-option *ngFor="let ev of inputOptionType | enumToArray" [value]="ev.key">
+                    {{ 'gauges.property-input-type-' + ev.value | translate }}
+                </mat-option>
+            </mat-select>
+        </div>
+        <ng-container *ngIf="property.options.type === inputOptionType.number">
+            <div class="my-form-field ml20">
+                <span>{{'gauges.property-input-min' | translate}}</span>
+                <input numberOnly [(ngModel)]="property.options.min" type="number" style="width: 80px">
+            </div>
+            <div class="my-form-field ml20">
+                <span>{{'gauges.property-input-max' | translate}}</span>
+                <input numberOnly [(ngModel)]="property.options.max" type="number" style="width: 80px">
+            </div>
+        </ng-container>
+        <ng-container *ngIf="property.options.type === inputOptionType.time || property.options.type === inputOptionType.datetime">
+            <div class="my-form-field ml20" style="width: 160px;">
+                <span>{{'gauges.property-input-time-format' | translate}}</span>
+                <mat-select [(ngModel)]="property.options.timeformat">
+                    <mat-option *ngFor="let ev of inputTimeFormatType | enumToArray" [value]="ev.key">
+                        {{ 'gauges.property-input-time-format-' + ev.value | translate }}
+                    </mat-option>
+                </mat-select>
+            </div>
+        </ng-container>
+        <ng-container *ngIf="property.options.type === inputOptionType.time || property.options.type === inputOptionType.date || property.options.type === inputOptionType.datetime">
+            <div class="my-form-field ml20" style="width: 120px;">
+                <span>{{'gauges.property-input-convertion' | translate}}</span>
+                <mat-select [(ngModel)]="property.options.convertion">
+                    <mat-option *ngFor="let ev of inputConvertionType | enumToArray" [value]="ev.key">
+                        {{ 'gauges.property-input-convertion-' + ev.value | translate }}
+                    </mat-option>
+                </mat-select>
+            </div>
+        </ng-container>
+        <div class="mt15">
+            <div class="my-form-field">
+                <span>{{'gauges.property-update-enabled' | translate}}</span>
+                <mat-slide-toggle color="primary" [(ngModel)]="property.options.updated" class="ml20"></mat-slide-toggle>
+            </div>
+            <!-- integrated in actionOnEsc -->
+            <!-- <div class="my-form-field ml20">
+                <span>{{'gauges.property-update-esc' | translate}}</span>
+                <mat-slide-toggle color="primary" [(ngModel)]="property.options.updatedEsc" [disabled]="!property.options.updated" class="ml20"></mat-slide-toggle>
+            </div> -->
+            <div class="my-form-field ml20">
+                <span>{{'gauges.property-select-content-on-click' | translate}}</span>
+                <mat-slide-toggle color="primary" [(ngModel)]="property.options.selectOnClick" class="ml20"></mat-slide-toggle>
+            </div>
+            <div class="my-form-field ml20" style="width: 140px;">
+                <span>{{'gauges.property-input-esc-action' | translate}}</span>
+                <mat-select [(ngModel)]="property.options.actionOnEsc">
+                    <mat-option [value]="null"></mat-option>
+                    <mat-option *ngFor="let ev of inputActionEscType | enumToArray" [value]="ev.key">
+                        {{ 'gauges.property-action-esc-' + ev.value | translate }}
+                    </mat-option>
+                </mat-select>
+            </div>
+        </div>
+    </div>
+</div>
