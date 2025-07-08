@@ -88,10 +88,10 @@ export class TagPropertyEditFinsComponent implements OnInit, OnDestroy {
   }
 
   onOkClick(): void {
-    if (this.formGroup.valid) {
+    //if (this.formGroup.valid) {
       this.result.emit(this.formGroup.getRawValue());
     }
-  }
+  //}
 
   onNoClick(): void {
     this.dialogRef.close();
