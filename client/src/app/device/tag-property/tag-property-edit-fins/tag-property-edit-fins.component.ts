@@ -1,8 +1,10 @@
 import { Component, EventEmitter, OnInit, Inject, Output, OnDestroy } from '@angular/core';
 import { AbstractControl, UntypedFormBuilder, UntypedFormGroup, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
-import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+//import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MAT_LEGACY_DIALOG_DATA as MAT_DIALOG_DATA, MatLegacyDialogRef as MatDialogRef } from '@angular/material/legacy-dialog';
 import { Tag, Device } from '../../../_models/device';
 import { Subject, takeUntil } from 'rxjs';
+//import { TranslateService } from '@ngx-translate/core';
 
 export interface TagProperty {
   device: Device;
@@ -29,10 +31,14 @@ export class TagPropertyEditFinsComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
       console.log('[DEBUG] Initializing TagPropertyEditFinsComponent');
-    const tag = this.data.tag;
+      const tag = this.data.tag;
       console.log('[DEBUG] Incoming Tag:', tag);
       console.log('[DEBUG] Incoming Device:', this.data.device);
-    this.formGroup = this.fb.group({
+      if (!tag) {
+      console.error('[FINS] ❌ Tag data is undefined.');
+      return;
+  }
+      this.formGroup = this.fb.group({
       deviceName: [{ value: this.data.device.name, disabled: true }, Validators.required],
       tagName: [tag.name, [Validators.required, this.validateName()]],
       tagType: [tag.type || 'Int16', Validators.required],
