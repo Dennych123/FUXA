@@ -18,7 +18,7 @@ import { TopicPropertyComponent, TopicPropertyData } from '../topic-property/top
 import { TranslateService } from '@ngx-translate/core';
 import { ToastrService } from 'ngx-toastr';
 import { TagPropertyEditGpioComponent, TagPropertyGpioData } from './tag-property-edit-gpio/tag-property-edit-gpio.component';
-import { TagPropertyEditFinsComponent, } from './tag-property-edit-fins/tag-property-edit-fins.component';
+import { TagPropertyEditFinsComponent } from './tag-property-edit-fins/tag-property-edit-fins.component';
 @Injectable({
     providedIn: 'root'
 })
@@ -140,6 +140,7 @@ export class TagPropertyService {
     console.log('[DEBUG] Tag to edit:', tag);
     let oldTagId = tag.id;
     let tagToEdit: Tag = Utils.clone(tag);
+    console.log('Opening dialog with tag:', tag);
     let dialogRef = this.dialog.open(TagPropertyEditFinsComponent, {
         
         disableClose: true,
