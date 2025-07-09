@@ -30,10 +30,7 @@ export class TagPropertyEditFinsComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-      console.log('[DEBUG] Initializing TagPropertyEditFinsComponent');
       const tag = this.data.tag;
-      console.log('[DEBUG] Incoming Tag:', tag);
-      console.log('[DEBUG] Incoming Device:', this.data.device);
       if (!tag) {
       console.error('[FINS] ❌ Tag data is undefined.');
       return;
@@ -47,19 +44,19 @@ export class TagPropertyEditFinsComponent implements OnInit, OnDestroy {
       tagDivisor: [tag.divisor || 1],
       tagDescription: [tag.description || '']
     });
-    console.log('[DEBUG] FormGroup initialized:', this.formGroup.value);
+    
     // Update tagType based on tagMemoryAddress
     this.formGroup.controls.tagMemoryAddress.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe(addr => {
-        console.log('[DEBUG] tagMemoryAddress changed to:', addr);
+        
         this.formGroup.controls.tagType.enable();
         if (!addr) {
           this.formGroup.controls.tagType.disable();
         } else if (addr === 'H' || addr === 'A') {
           this.formGroup.patchValue({ tagType: 'Bool' });
           this.formGroup.controls.tagType.disable();
-           console.log('[DEBUG] tagType auto-set to Bool and disabled');
+          
         }
       });
 
@@ -71,7 +68,7 @@ export class TagPropertyEditFinsComponent implements OnInit, OnDestroy {
         this.existingNames.push(existingTag.name);
       }
     });
-     console.log('[DEBUG] Existing tag names:', this.existingNames);
+     
   }
 
   ngOnDestroy(): void {

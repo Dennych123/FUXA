@@ -21,7 +21,7 @@ function DeviceFins(data, logger, events, runtime) {
     let deviceTags = data.tags || {};
 
     const options = data.property || {};
-    const host = options.host || '192.168.0.1';
+    const host = options.host || '192.168.11.1';
     const port = parseInt(options.port || 9600);
     const SA1 = parseInt(options.SA1 || 234);
     const DA1 = parseInt(options.DA1 || 1);
