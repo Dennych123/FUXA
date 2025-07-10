@@ -466,63 +466,72 @@ export class DeviceMapComponent implements OnInit, OnDestroy, AfterViewInit {
     }
 
     editDevice(device: Device, toremove: boolean) {
-        let exist = Object.values(this.devices).filter((d: Device) => d.id !== device.id).map((d: Device) => d.name);
-        exist.push('server');
-        let tempdevice = JSON.parse(JSON.stringify(device));
-        let dialogRef = this.dialog.open(DevicePropertyComponent, {
-            disableClose: true,
-            panelClass: 'dialog-property',
-            data: {
-                device: tempdevice, remove: toremove, exist: exist, availableType: this.plugins,
-                projectService: this.projectService
-            },
-            position: { top: '60px' }
-        });
+	const exist = Object.values(this.devices).filter((d: Device) => d.id !== device.id).map((d: Device) => d.name);
+	exist.push('server');
 
-        dialogRef.afterClosed().subscribe(result => {
-            if (result) {
-                this.dirty = true;
-                if (toremove) {
-                    this.removeDevice(device);
-                    this.projectService.removeDevice(device);
-                } else {
-                    let olddevice = JSON.parse(JSON.stringify(device));
-                    device.name = tempdevice.name;
-                    device.type = tempdevice.type;
-                    device.enabled = tempdevice.enabled;
-                    device.polling = tempdevice.polling;
-                    if (this.appService.isClientApp || this.appService.isDemoApp) {
-                        delete device.property;
-                    }
-                    if (device.property && tempdevice.property) {
-                        device.property.address = tempdevice.property.address;
-                        device.property.port = parseInt(tempdevice.property.port);
-                        device.property.slot = parseInt(tempdevice.property.slot);
-                        device.property.rack = parseInt(tempdevice.property.rack);
-                        device.property.slaveid = tempdevice.property.slaveid;
-                        device.property.baudrate = tempdevice.property.baudrate;
-                        device.property.databits = tempdevice.property.databits;
-                        device.property.stopbits = tempdevice.property.stopbits;
-                        device.property.parity = tempdevice.property.parity;
-                        device.property.options = tempdevice.property.options;
-                        device.property.delay = tempdevice.property.delay;
-                        device.property.method = tempdevice.property.method;
-                        device.property.format = tempdevice.property.format;
-                        device.property.broadcastAddress = tempdevice.property.broadcastAddress;
-                        device.property.adpuTimeout = tempdevice.property.adpuTimeout;
-                        device.property.local = tempdevice.property.local;
-                        device.property.router = tempdevice.property.router;
-                        if (tempdevice.property.connectionOption) {
-                            device.property.connectionOption = tempdevice.property.connectionOption;
-                        }
-                        device.property.socketReuse = (device.type === DeviceType.ModbusTCP) ? tempdevice.property.socketReuse : null;
-                    }
-                    this.projectService.setDevice(device, olddevice, result.security);
-                }
-                this.loadDevices();
-            }
-        });
-    }
+	const tempdevice = JSON.parse(JSON.stringify(device));
+	const dialogRef = this.dialog.open(DevicePropertyComponent, {
+		disableClose: true,
+		panelClass: 'dialog-property',
+		data: {
+			device: tempdevice,
+			remove: toremove,
+			exist: exist,
+			availableType: this.plugins,
+			projectService: this.projectService
+		},
+		position: { top: '60px' }
+	});
+
+	dialogRef.afterClosed().subscribe(result => {
+		if (!result) return;
+
+		this.dirty = true;
+
+		if (toremove) {
+			this.removeDevice(device);
+			this.projectService.removeDevice(device);
+			return;
+		}
+
+		const olddevice = JSON.parse(JSON.stringify(device));
+
+		// Salin properti utama
+		device.name = tempdevice.name;
+		device.type = tempdevice.type;
+		device.enabled = tempdevice.enabled;
+		device.polling = tempdevice.polling;
+
+		// Salin properti network/device
+		if (!this.appService.isClientApp && !this.appService.isDemoApp) {
+			if (!device.property) device.property = new DeviceNetProperty();
+
+			const fieldsToCopy = [
+				'address', 'port', 'slot', 'rack', 'slaveid', 'baudrate', 'databits', 'stopbits',
+				'parity', 'options', 'delay', 'method', 'format', 'broadcastAddress',
+				'adpuTimeout', 'local', 'router', 'connectionOption', 'socketReuse',
+				// ⬇️ Tambahkan dukungan untuk FINS
+				'SA1', 'DA1', 'FinsProtocol'
+			];
+
+			fieldsToCopy.forEach(key => {
+				if (tempdevice.property.hasOwnProperty(key)) {
+					device.property[key] = tempdevice.property[key];
+				}
+			});
+
+			// Hanya ModbusTCP yang punya socketReuse
+			if (device.type !== DeviceType.ModbusTCP) {
+				device.property.socketReuse = null;
+			}
+		}
+
+		// Simpan ke project
+		this.projectService.setDevice(device, olddevice, result.security);
+		this.loadDevices();
+	});
+}
+
 
     showDeviceWebApiProperty(device: Device) {
         let dialogRef = this.dialog.open(DeviceWebapiPropertyDialogComponent, {
