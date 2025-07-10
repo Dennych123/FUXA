@@ -18,13 +18,21 @@ function DeviceFins(data, logger, events, runtime) {
 
     const deviceId = data.id;
     const deviceName = data.name;
-    let deviceTags = data.tags || {};
+    let deviceTags = Object.values(data.tags || {});
+    logger.debug(`[FINS] Tags to read: ${JSON.stringify(deviceTags)}`);
+
+
 
     const options = data.property || {};
-    const host = options.host || '192.168.11.1';
-    const port = parseInt(options.port || 9600);
-    const SA1 = parseInt(options.SA1 || 234);
-    const DA1 = parseInt(options.DA1 || 1);
+
+    const host = options.address || '192.168.11.1'; // IP dari frontend (FinsIpAddress)
+    const port = parseInt(options.port) || 9600;      // ⬅️ tambahkan baris ini
+    const protocol = options.FinsProtocol || 'UDP'; // 'UDP' atau 'TCP'
+    const SA1 = parseInt(options.SA1) || 234;
+    const DA1 = parseInt(options.DA1) || 1;
+
+    // Untuk debugging
+    logger.debug(`[FINS] 💡 Configuration: IP=${host}, Protocol=${protocol}, SA1=${SA1}, DA1=${DA1}`);
 
     this.connect = function () {
         return new Promise((resolve, reject) => {
@@ -34,6 +42,7 @@ function DeviceFins(data, logger, events, runtime) {
             }
 
             client = new fins.FinsClient(port, host, {
+                protocol:protocol.toLowerCase(),
                 SA1: SA1,
                 DA1: DA1,
                 timeout: 2000
@@ -78,13 +87,23 @@ function DeviceFins(data, logger, events, runtime) {
     this.isConnected = () => isConnected;
 
     this.polling = async function () {
-        if (!isConnected || !client || !Array.isArray(deviceTags)) return;
+        logger.debug('[FINS] Polling called');
+        logger.debug(`[FINS] isConnected=${isConnected}, client=${!!client}, deviceTags=${Array.isArray(deviceTags)} (${typeof deviceTags})`);
 
+        if (!isConnected || !client || !Array.isArray(deviceTags)) {
+        logger.warn('[FINS] ❌ Polling aborted because one of the conditions failed.');
+        return;
+    }
         let changed = [];
         for (let tag of deviceTags) {
             try {
                 await new Promise((resolve) => {
-                    client.read(tag.address, 1, null, tag.name);
+                    logger.debug(`[FINS] Reading tag ${tag.name} at ${tag.address}`);
+                    const finsAddress = `${tag.memaddress}${tag.address}`;
+                    logger.debug(`[FINS] Reading tag ${tag.name} at ${finsAddress}`);
+                    client.read(finsAddress, 1, null, tag.name);
+
+                    logger.debug(`[FINS] Sent read request`);
                     client.once('reply', (msg) => {
                         const val = msg.response.values?.[0];
                         const now = Date.now();
@@ -123,11 +142,12 @@ function DeviceFins(data, logger, events, runtime) {
     this.getStatus = () => isConnected ? 'connect-ok' : 'connect-off';
 
     this.load = (_data) => {
-        if (_data.tags) {
-            data.tags = _data.tags;
-            deviceTags = data.tags;
-        }
-    };
+    if (_data.tags) {
+        data.tags = _data.tags;
+        deviceTags = Object.values(_data.tags); // ⬅️ Ubah ke array agar polling bisa iterasi
+    }
+};
+
 
     this.setValue = function (tagId, value) {
         // Optional: implement FINS write if needed
