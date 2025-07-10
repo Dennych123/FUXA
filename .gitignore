@@ -90,3 +90,7 @@ app/dist/win-unpacked/
 node_modules/
 app/dist/
 *.exe
+client/dist
+/client/dist/
+
+client/dist/
