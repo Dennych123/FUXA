@@ -311,6 +311,12 @@ export enum ModbusOptionType {
     TelnetPort = 'TelnetPort'
 }
 
+export enum FinsProtocolType {
+    UDP = 'UDP',
+    TCP = 'TCP'
+    
+}
+
 export enum ModbusReuseModeType {
     Reuse = 'Reuse',
     ReuseSerial = 'ReuseSerial',

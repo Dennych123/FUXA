@@ -7,7 +7,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { EndPointSettings, HmiService } from '../../_services/hmi.service';
 import { AppService } from '../../_services/app.service';
 import { ProjectService } from '../../_services/project.service';
-import { DeviceType, DeviceSecurity, MessageSecurityMode, SecurityPolicy, ModbusOptionType, ModbusReuseModeType } from './../../_models/device';
+import { DeviceType, DeviceSecurity, MessageSecurityMode, SecurityPolicy, ModbusOptionType, ModbusReuseModeType, FinsProtocolType } from './../../_models/device';
 
 @Component({
 	selector: 'app-device-property',
@@ -74,6 +74,10 @@ export class DevicePropertyComponent implements OnInit, OnDestroy {
 	modbusRtuOptionType = [ModbusOptionType.SerialPort, ModbusOptionType.RTUBufferedPort, ModbusOptionType.AsciiPort];
 	modbusTcpOptionType = [ModbusOptionType.TcpPort, ModbusOptionType.UdpPort, ModbusOptionType.TcpRTUBufferedPort, ModbusOptionType.TelnetPort];
 	modbusReuseModeType = ModbusReuseModeType;
+	SA1: number;
+	DA1: number;
+	FinsProtocol = [FinsProtocolType.UDP,FinsProtocolType.TCP];
+
 
 	result = '';
 	private subscriptionDeviceProperty: Subscription;
@@ -92,10 +96,13 @@ export class DevicePropertyComponent implements OnInit, OnDestroy {
         }
 
 	ngOnInit() {
+	console.log('[DEBUG INIT] SA1:', this.data.device?.property?.SA1);
+	console.log('[DEBUG INIT] DA1:', this.data.device?.property?.DA1);
+	console.log('[DEBUG INIT] Protocol:', this.data.device?.property?.FinsProtocol);
 		this.isToRemove = this.data.remove;
 		this.isFuxaServer = (this.data.device.type && this.data.device.type === DeviceType.FuxaServer) ? true : false;
-		 console.log('[DEBUG] DeviceType enum:', DeviceType);
-   		 console.log('[DEBUG] this.data.availableType:', this.data.availableType);
+		 //console.log('[DEBUG] DeviceType enum:', DeviceType);
+   		 //console.log('[DEBUG] this.data.availableType:', this.data.availableType);
 		
 		for (let key in DeviceType) {
 			if (!this.isFuxaServer && key !== DeviceType.FuxaServer) {
@@ -203,8 +210,13 @@ export class DevicePropertyComponent implements OnInit, OnDestroy {
 			}
 			this.propertyLoading = false;
 		});
+		
+		
+
+		
 
 		this.onDeviceTypeChanged();
+	
 	}
 
 	ngOnDestroy() {
@@ -228,7 +240,14 @@ export class DevicePropertyComponent implements OnInit, OnDestroy {
 	}
 
 	onOkClick(): void {
+	console.log('[DEBUG] onOkClick() triggered');
+	console.log('[DEBUG] SA1:', this.data.device?.property?.SA1);
+	console.log('[DEBUG] DA1:', this.data.device?.property?.DA1);
+	console.log('[DEBUG] Protocol:', this.data.device?.property?.FinsProtocol);
+	console.log('[DEBUG] device.property:', this.data.device?.property);
 		this.data.security = this.getSecurity();
+		this.dialogRef.close(this.data);
+		
 	}
 
 	onCheckOpcUaServer() {
