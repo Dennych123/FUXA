@@ -150,8 +150,20 @@ function DeviceFins(data, logger, events, runtime) {
 
 
     this.setValue = function (tagId, value) {
-        // Optional: implement FINS write if needed
-    };
+    const tag = deviceTags.find(t => t.id === tagId);
+    if (!client || !tag) return;
+
+    const finsAddress = `${tag.memaddress}${tag.address}`;
+    client.write(finsAddress, [value], (err) => {
+        if (err) {
+            logger.warn(`[FINS] ❌ Failed to write ${value} to ${finsAddress}: ${err}`);
+        } else {
+            logger.debug(`[FINS] ✅ Wrote ${value} to ${finsAddress}`);
+            values[tagId] = value;
+        }
+    });
+};
+
 
     this.getTagProperty = function (tagId) {
         return {};
