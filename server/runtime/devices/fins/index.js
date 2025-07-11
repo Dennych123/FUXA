@@ -66,7 +66,7 @@ function DeviceFins(data, logger, events, runtime) {
             });
 
             client.on('reply', (msg) => {
-                logger.debug(`[FINS] 🔁 Reply: ${JSON.stringify(msg.response.values)} for ${msg.tag}`);
+                //logger.debug(`[FINS] 🔁 Reply: ${JSON.stringify(msg.response.values)} for ${msg.tag}`);
             });
         });
     };
@@ -87,8 +87,8 @@ function DeviceFins(data, logger, events, runtime) {
     this.isConnected = () => isConnected;
 
     this.polling = async function () {
-        logger.debug('[FINS] Polling called');
-        logger.debug(`[FINS] isConnected=${isConnected}, client=${!!client}, deviceTags=${Array.isArray(deviceTags)} (${typeof deviceTags})`);
+        //logger.debug('[FINS] Polling called');
+        //logger.debug(`[FINS] isConnected=${isConnected}, client=${!!client}, deviceTags=${Array.isArray(deviceTags)} (${typeof deviceTags})`);
 
         if (!isConnected || !client || !Array.isArray(deviceTags)) {
         logger.warn('[FINS] ❌ Polling aborted because one of the conditions failed.');
@@ -98,12 +98,12 @@ function DeviceFins(data, logger, events, runtime) {
         for (let tag of deviceTags) {
             try {
                 await new Promise((resolve) => {
-                    logger.debug(`[FINS] Reading tag ${tag.name} at ${tag.address}`);
+                    //logger.debug(`[FINS] Reading tag ${tag.name} at ${tag.address}`);
                     const finsAddress = `${tag.memaddress}${tag.address}`;
-                    logger.debug(`[FINS] Reading tag ${tag.name} at ${finsAddress}`);
+                    //logger.debug(`[FINS] Reading tag ${tag.name} at ${finsAddress}`);
                     client.read(finsAddress, 1, null, tag.name);
 
-                    logger.debug(`[FINS] Sent read request`);
+                    //logger.debug(`[FINS] Sent read request`);
                     client.once('reply', (msg) => {
                         const val = msg.response.values?.[0];
                         const now = Date.now();
@@ -150,8 +150,20 @@ function DeviceFins(data, logger, events, runtime) {
 
 
     this.setValue = function (tagId, value) {
-        // Optional: implement FINS write if needed
-    };
+    const tag = deviceTags.find(t => t.id === tagId);
+    if (!client || !tag) return;
+
+    const finsAddress = `${tag.memaddress}${tag.address}`;
+    client.write(finsAddress, [value], (err) => {
+        if (err) {
+            logger.warn(`[FINS] ❌ Failed to write ${value} to ${finsAddress}: ${err}`);
+        } else {
+            logger.debug(`[FINS] ✅ Wrote ${value} to ${finsAddress}`);
+            values[tagId] = value;
+        }
+    });
+};
+
 
     this.getTagProperty = function (tagId) {
         return {};
