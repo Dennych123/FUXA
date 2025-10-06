@@ -1,7 +1,8 @@
 'use strict';
 
 let fins;
-
+let lastTimestampValue = null;
+this.addDaq = null;
 try {
     fins = require('omron-fins');
 } catch (err) {
@@ -12,6 +13,7 @@ function DeviceFins(data, logger, events, runtime) {
     let client = null;
     let values = {};
     let isConnected = false;
+    
     let tagMap = {};
     let lastTimestampValue = null;
     let reconnectTimer = null;
@@ -148,6 +150,7 @@ function DeviceFins(data, logger, events, runtime) {
                     clearTimeout(timeout);
                     const val = msg.response.values?.[0];
                     const now = Date.now();
+                    lastTimestampValue = now;
                     if (val !== undefined && values[tag.id] !== val) {
                         values[tag.id] = val;
                         changed.push({ id: tag.id, value: val });
@@ -208,11 +211,33 @@ function DeviceFins(data, logger, events, runtime) {
         });
     };
 
-    this.getTagProperty = () => ({});
-    this.bindAddDaq = (fnc) => this.addDaq = fnc;
-    this.lastReadTimestamp = () => Date.now();
-    this.getTagDaqSettings = () => ({});
-    this.setTagDaqSettings = () => {};
+    this.getTagProperty = function (id) {
+    if (data.tags[id]) {
+        return {
+            id: id,
+            name: data.tags[id].name,
+            type: data.tags[id].type,
+            format: data.tags[id].format
+        };
+    } else {
+        return null;
+    }
+};
+    this.bindAddDaq = function (fnc) {
+    this.addDaq = fnc; // fungsi untuk menyimpan historis ke DB
+};
+    this.lastReadTimestamp = () => {
+    return lastTimestampValue;
+};
+    this.getTagDaqSettings = (tagId) => {
+    return data.tags[tagId] ? data.tags[tagId].daq : null;
+};
+    this.setTagDaqSettings = (tagId, settings) => {
+    if (data.tags[tagId]) {
+        // Kalau FUXA punya util, kamu bisa pakai: utils.mergeObjectsValues(...)
+        data.tags[tagId].daq = { ...data.tags[tagId].daq, ...settings };
+    }
+};
 }
 
 module.exports = {
