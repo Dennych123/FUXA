@@ -103,7 +103,7 @@ export class DevicePropertyComponent implements OnInit, OnDestroy {
 		this.isFuxaServer = (this.data.device.type && this.data.device.type === DeviceType.FuxaServer) ? true : false;
 		 //console.log('[DEBUG] DeviceType enum:', DeviceType);
    		 //console.log('[DEBUG] this.data.availableType:', this.data.availableType);
-		
+
 		for (let key in DeviceType) {
 			if (!this.isFuxaServer && key !== DeviceType.FuxaServer) {
 				for (let idx = 0; idx < this.data.availableType.length; idx++) {
@@ -210,13 +210,13 @@ export class DevicePropertyComponent implements OnInit, OnDestroy {
 			}
 			this.propertyLoading = false;
 		});
-		
-		
 
-		
+
+
+
 
 		this.onDeviceTypeChanged();
-	
+
 	}
 
 	ngOnDestroy() {
@@ -247,7 +247,7 @@ export class DevicePropertyComponent implements OnInit, OnDestroy {
 	console.log('[DEBUG] device.property:', this.data.device?.property);
 		this.data.security = this.getSecurity();
 		this.dialogRef.close(this.data);
-		
+
 	}
 
 	onCheckOpcUaServer() {
@@ -294,12 +294,70 @@ export class DevicePropertyComponent implements OnInit, OnDestroy {
 		}
 	}
 
-	isValid(device): boolean {
+    isValid(device): boolean {
         if (!device.name || !device.type) {
             return false;
         }
-		return (this.data.exist.find((n) => n === device.name)) ? false : true;
-	}
+
+        // FINS specific validation
+        if (device.type === DeviceType.Fins) {
+            const property = device.property;
+
+            // Validate IP address
+            if (!property.address || !this.isValidIpAddress(property.address)) {
+                return false;
+            }
+
+            // Validate SA1 (PC Node) - must be 0-254
+            const sa1 = parseInt(property.SA1);
+            if (isNaN(sa1) || sa1 < 0 || sa1 > 254) {
+                return false;
+            }
+
+            // Validate DA1 (PLC Node) - must be 0-254
+            const da1 = parseInt(property.DA1);
+            if (isNaN(da1) || da1 < 0 || da1 > 254) {
+                return false;
+            }
+
+            // Validate Protocol
+            if (!property.FinsProtocol || (property.FinsProtocol !== 'UDP' && property.FinsProtocol !== 'TCP')) {
+                return false;
+            }
+        }
+
+        return (this.data.exist.find((n) => n === device.name)) ? false : true;
+    }
+
+    isValidIpAddress(ip: string): boolean {
+        if (!ip) {
+            return false;
+        }
+
+        const ipRegex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+        const match = ip.match(ipRegex);
+
+        if (!match) {
+            return false;
+        }
+
+        // Check each octet is between 0-255
+        for (let i = 1; i <= 4; i++) {
+            const octet = parseInt(match[i]);
+            if (octet < 0 || octet > 255) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    validateIpAddress(ip: string): void {
+        if (ip && !this.isValidIpAddress(ip)) {
+            console.warn('Invalid IP address format');
+            // Optionally show a toastr notification here
+        }
+    }
 
 	isSecurityMode(sec) {
 		if (JSON.stringify(this.mode) === JSON.stringify(sec)) {
