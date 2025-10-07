@@ -12,7 +12,7 @@
     </div>
     <div class="my-form-field item-block mt10">
       <span>{{'device.tag-property-register' | translate}}</span>
-      <mat-select formControlName="tagMemoryAddress">
+      <mat-select formControlName="tagMemoryAddress" (selectionChange)="onMemoryAddressChange()">
         <mat-option value="D">D (Data Memory)</mat-option>
         <mat-option value="W">W (Work)</mat-option>
         <mat-option value="C">C (Counter)</mat-option>
@@ -22,16 +22,41 @@
     </div>
     <div class="my-form-field item-block mt10">
       <span>{{'device.tag-property-type' | translate}}</span>
-      <mat-select formControlName="tagType">
+      <mat-select formControlName="tagType" (selectionChange)="onTypeChange()">
         <mat-option value="Bool">Bool</mat-option>
         <mat-option value="Int16">Int16</mat-option>
         <mat-option value="UInt16">UInt16</mat-option>
       </mat-select>
     </div>
+
+    <!-- Address Word (visible for all types) -->
     <div class="my-form-field item-block mt10">
-      <span>{{'device.tag-property-address-offset' | translate}}</span>
-      <input numberOnly formControlName="tagAddress" type="number" min="0">
+      <span>{{ isBoolType ? 'Address Word' : 'Address' }}</span>
+      <input numberOnly
+             formControlName="tagAddress"
+             type="number"
+             [min]="getMinAddress()"
+             [max]="getMaxAddress()"
+             [placeholder]="getAddressPlaceholder()">
+      <mat-error *ngIf="formGroup.get('tagAddress')?.hasError('min') || formGroup.get('tagAddress')?.hasError('max')">
+        {{ getAddressRangeText() }}
+      </mat-error>
     </div>
+
+    <!-- Address Bit (visible only for Bool type) -->
+    <div class="my-form-field item-block mt10" *ngIf="isBoolType">
+      <span>Address Bit</span>
+      <input numberOnly
+             formControlName="tagAddressBit"
+             type="number"
+             min="0"
+             max="15"
+             placeholder="0-15">
+      <mat-error *ngIf="formGroup.get('tagAddressBit')?.hasError('min') || formGroup.get('tagAddressBit')?.hasError('max')">
+        Bit must be between 0-15
+      </mat-error>
+    </div>
+
     <div class="my-form-field item-block mt10">
       <span>{{'device.tag-property-divisor' | translate}}</span>
       <input numberOnly formControlName="tagDivisor" type="number">
