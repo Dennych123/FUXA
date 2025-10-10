@@ -1,102 +1,116 @@
-import { Component, EventEmitter, OnInit, Inject, Output, OnDestroy } from '@angular/core';
-import { AbstractControl, UntypedFormBuilder, UntypedFormGroup, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
-//import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { MAT_LEGACY_DIALOG_DATA as MAT_DIALOG_DATA, MatLegacyDialogRef as MatDialogRef } from '@angular/material/legacy-dialog';
-import { Tag, Device } from '../../../_models/device';
-import { Subject, takeUntil } from 'rxjs';
-//import { TranslateService } from '@ngx-translate/core';
-
-export interface TagProperty {
-  device: Device;
-  tag: Tag;
-}
+import { Component, OnInit, Inject, Output, EventEmitter } from '@angular/core';
+import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
+import { MatLegacyDialogRef as MatDialogRef, MAT_LEGACY_DIALOG_DATA as MAT_DIALOG_DATA } from '@angular/material/legacy-dialog';
 
 @Component({
-  selector: 'app-tag-property-edit-fins',
-  templateUrl: './tag-property-edit-fins.component.html',
-  styleUrls: ['./tag-property-edit-fins.component.scss']
+    selector: 'app-tag-property-edit-fins',
+    templateUrl: './tag-property-edit-fins.component.html',
+    styleUrls: ['./tag-property-edit-fins.component.scss']
 })
-export class TagPropertyEditFinsComponent implements OnInit, OnDestroy {
-  @Output() result = new EventEmitter<any>();
-  formGroup: UntypedFormGroup;
-  existingNames: string[] = [];
-  error: string;
-  private destroy$ = new Subject<void>();
-
-  constructor(
-    private fb: UntypedFormBuilder,
-    public dialogRef: MatDialogRef<TagPropertyEditFinsComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: TagProperty
-  ) {}
-
-  ngOnInit(): void {
-      const tag = this.data.tag;
-      if (!tag) {
-      console.error('[FINS] ❌ Tag data is undefined.');
-      return;
-  }
-      this.formGroup = this.fb.group({
-      deviceName: [{ value: this.data.device.name, disabled: true }, Validators.required],
-      tagName: [tag.name, [Validators.required, this.validateName()]],
-      tagType: [tag.type || 'Int16', Validators.required],
-      tagAddress: [tag.address || 0, [Validators.required, Validators.min(0)]],
-      tagMemoryAddress: [tag.memaddress || 'D', Validators.required],
-      tagDivisor: [tag.divisor || 1],
-      tagDescription: [tag.description || '']
-    });
-    
-    // Update tagType based on tagMemoryAddress
-    this.formGroup.controls.tagMemoryAddress.valueChanges
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(addr => {
-        
-        this.formGroup.controls.tagType.enable();
-        if (!addr) {
-          this.formGroup.controls.tagType.disable();
-        } else if (addr === 'H' || addr === 'A') {
-          this.formGroup.patchValue({ tagType: 'Bool' });
-          this.formGroup.controls.tagType.disable();
-          
-        }
-      });
-
-    Object.keys(this.data.device.tags).forEach(key => {
-      const existingTag = this.data.device.tags[key];
-      if (existingTag.id && existingTag.id !== tag.id) {
-        this.existingNames.push(existingTag.name);
-      } else if (!existingTag.id && existingTag.name !== tag.name) {
-        this.existingNames.push(existingTag.name);
-      }
-    });
-     
-  }
-
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
-  }
-
-  validateName(): ValidatorFn {
-    return (control: AbstractControl): ValidationErrors | null => {
-      this.error = null;
-      const name = control?.value;
-      if (this.existingNames.indexOf(name) !== -1) {
-        return { name: 'Tag name already exists' };
-      }
-      if (name?.includes('@')) {
-        return { name: 'Invalid character in tag name' };
-      }
-      return null;
+export class TagPropertyEditFinsComponent implements OnInit {
+    @Output() result = new EventEmitter<any>();
+    formGroup: UntypedFormGroup;
+    isBoolType = false;
+    memoryRanges = {
+        'D': { min: 0, max: 32767, name: 'Data Memory' },
+        'W': { min: 0, max: 511, name: 'Work' },
+        'C': { min: 0, max: 4095, name: 'Counter' },
+        'H': { min: 0, max: 511, name: 'Holding' },
+        'A': { min: 0, max: 959, name: 'Auxiliary' }
     };
-  }
 
-  onOkClick(): void {
-    //if (this.formGroup.valid) {
-      this.result.emit(this.formGroup.getRawValue());
+    constructor(
+        private fb: UntypedFormBuilder,
+        public dialogRef: MatDialogRef<TagPropertyEditFinsComponent>,
+        @Inject(MAT_DIALOG_DATA) public data: any
+    ) {}
+
+    ngOnInit() {
+        this.formGroup = this.fb.group({
+            deviceName: [{ value: this.data.device?.name || '', disabled: true }],
+            tagName: [this.data.tag?.name || '', Validators.required],
+            tagMemoryAddress: [this.data.tag?.memaddress || 'D', Validators.required],
+            tagType: [this.data.tag?.type || 'Int16', Validators.required],
+            tagAddress: [
+                this.data.tag?.address || 0,
+                [Validators.required, Validators.min(0)]
+            ],
+            tagAddressBit: [this.data.tag?.bit !== undefined ? this.data.tag.bit : 0],
+            tagDivisor: [this.data.tag?.divisor || 1],
+            tagDescription: [this.data.tag?.description || '']
+        });
+
+        this.isBoolType = this.formGroup.get('tagType')?.value === 'Bool';
+        this.updateAddressValidators();
+        this.updateBitFieldVisibility();
     }
-  //}
 
-  onNoClick(): void {
-    this.dialogRef.close();
-  }
+    onTypeChange() {
+        const tagType = this.formGroup.get('tagType')?.value;
+        this.isBoolType = tagType === 'Bool';
+        this.updateBitFieldVisibility();
+        this.updateAddressValidators();
+    }
+
+    onMemoryAddressChange() {
+        this.updateAddressValidators();
+    }
+
+    updateBitFieldVisibility() {
+        const tagAddressBitControl = this.formGroup.get('tagAddressBit');
+        if (this.isBoolType) {
+            tagAddressBitControl?.setValidators([Validators.required, Validators.min(0), Validators.max(15)]);
+        } else {
+            tagAddressBitControl?.clearValidators();
+            tagAddressBitControl?.setValue(null);
+        }
+        tagAddressBitControl?.updateValueAndValidity();
+    }
+
+    updateAddressValidators() {
+        const memAddress = this.formGroup.get('tagMemoryAddress')?.value;
+        const range = this.memoryRanges[memAddress];
+
+        if (range) {
+            const tagAddressControl = this.formGroup.get('tagAddress');
+            tagAddressControl?.setValidators([
+                Validators.required,
+                Validators.min(range.min),
+                Validators.max(range.max)
+            ]);
+            tagAddressControl?.updateValueAndValidity();
+        }
+    }
+
+    getMinAddress(): number {
+        const memAddress = this.formGroup.get('tagMemoryAddress')?.value;
+        return this.memoryRanges[memAddress]?.min || 0;
+    }
+
+    getMaxAddress(): number {
+        const memAddress = this.formGroup.get('tagMemoryAddress')?.value;
+        return this.memoryRanges[memAddress]?.max || 32767;
+    }
+
+    getAddressPlaceholder(): string {
+        const memAddress = this.formGroup.get('tagMemoryAddress')?.value;
+        const range = this.memoryRanges[memAddress];
+        return range ? `${range.min}-${range.max}` : '0-32767';
+    }
+
+    getAddressRangeText(): string {
+        const memAddress = this.formGroup.get('tagMemoryAddress')?.value;
+        const range = this.memoryRanges[memAddress];
+        return range ? `Address must be between ${range.min}-${range.max} for ${range.name}` : '';
+    }
+
+    onNoClick(): void {
+        this.result.emit();
+    }
+
+    onOkClick(): void {
+        if (this.formGroup.valid) {
+            this.result.emit(this.formGroup.getRawValue());
+        }
+    }
 }

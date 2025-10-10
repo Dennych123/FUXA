@@ -69,6 +69,8 @@ export class Tag {
     memaddress: string;
     /** Tag address, for OPCUA like the id , for GPIO the io number */
     address: string;
+    /** Bit address for Bool types (FINS protocol) */
+    bit?: number;
     /** Value divisor, used by Modbus */
     divisor: number;
     /** not used yet */
@@ -314,7 +316,7 @@ export enum ModbusOptionType {
 export enum FinsProtocolType {
     UDP = 'UDP',
     TCP = 'TCP'
-    
+
 }
 
 export enum ModbusReuseModeType {

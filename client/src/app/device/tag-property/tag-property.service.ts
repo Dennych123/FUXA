@@ -135,47 +135,49 @@ export class TagPropertyService {
     }
 
     public editTagPropertyFins(device: Device, tag: Tag, checkToAdd: boolean): Observable<any> {
-     console.log('[DEBUG] Opening TagPropertyEditFinsComponent');
-    console.log('[DEBUG] Device:', device);
-    console.log('[DEBUG] Tag to edit:', tag);
-    let oldTagId = tag.id;
-    let tagToEdit: Tag = Utils.clone(tag);
-    console.log('Opening dialog with tag:', tag);
-    let dialogRef = this.dialog.open(TagPropertyEditFinsComponent, {
-        
-        disableClose: true,
-        data: {
-            device: device,
-            tag: tagToEdit
-        },
-        position: { top: '60px' }
-    });
-     console.log('[DEBUG] DialogRef:', dialogRef);
+        console.log('[DEBUG] Opening TagPropertyEditFinsComponent');
+        let oldTagId = tag.id;
+        let tagToEdit: Tag = Utils.clone(tag);
+        let dialogRef = this.dialog.open(TagPropertyEditFinsComponent, {
+            disableClose: true,
+            data: {
+                device: device,
+                tag: tagToEdit
+            },
+            position: { top: '60px' }
+        });
 
-    return dialogRef.componentInstance.result.pipe(
-        map(result => {
-            console.log('[DEBUG] Dialog closed with result:', result);
-            if (result) {
-                tag.name = result.tagName;
-                tag.type = result.tagType;
-                tag.address = result.tagAddress;
-                tag.memaddress = result.tagMemoryAddress;
-                tag.divisor = result.tagDivisor;
-                tag.description = result.tagDescription;
-                if (checkToAdd) {
-                    this.checkToAdd(tag, device);
-                } else if (tag.id !== oldTagId) {
-                    delete device.tags[oldTagId];
-                    this.checkToAdd(tag, device);
+        return dialogRef.componentInstance.result.pipe(
+            map((result: any) => {
+                console.log('[DEBUG] Dialog closed with result:', result);
+                if (result) {
+                    tag.name = result.tagName;
+                    tag.type = result.tagType;
+                    tag.address = result.tagAddress;
+                    tag.memaddress = result.tagMemoryAddress;
+                    tag.divisor = result.tagDivisor;
+                    tag.description = result.tagDescription;
+
+                    // Handle bit address for Bool type
+                    if (result.tagType === 'Bool' && result.tagAddressBit !== null && result.tagAddressBit !== undefined) {
+                        (tag as any).bit = result.tagAddressBit;
+                    } else {
+                        delete (tag as any).bit;
+                    }
+
+                    if (checkToAdd) {
+                        this.checkToAdd(tag, device);
+                    } else if (tag.id !== oldTagId) {
+                        delete device.tags[oldTagId];
+                        this.checkToAdd(tag, device);
+                    }
+                    this.projectService.setDeviceTags(device);
                 }
-                this.projectService.setDeviceTags(device);
-            }
-            dialogRef.close();
-            return result;
-        })
-    );
-}
-
+                dialogRef.close();
+                return result;
+            })
+        );
+    }
 
     public editTagPropertyInternal(device: Device, tag: Tag, checkToAdd: boolean): Observable<any> {
         let oldTagId = tag.id;
