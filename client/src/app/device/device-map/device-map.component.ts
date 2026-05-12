@@ -144,6 +144,7 @@ export class DeviceMapComponent implements OnInit, OnDestroy, AfterViewInit {
             this.plugins.push(DeviceType.WebAPI);
             this.plugins.push(DeviceType.MQTTclient);
             this.plugins.push(DeviceType.internal);
+            this.plugins.push(DeviceType.Fins);
         } else {
             this.plugins.push(DeviceType.internal);
         }
@@ -514,6 +515,11 @@ export class DeviceMapComponent implements OnInit, OnDestroy, AfterViewInit {
                         if (device.type === DeviceType.MELSEC) {
                             device.property.ascii = tempdevice.property.ascii;
                             device.property.octalIO = tempdevice.property.octalIO;
+                        }
+                        if (device.type === DeviceType.Fins) {
+                            device.property.SA1 = tempdevice.property.SA1;
+                            device.property.DA1 = tempdevice.property.DA1;
+                            device.property.FinsProtocol = tempdevice.property.FinsProtocol;
                         }
                         if (tempdevice.property.connectionOption) {
                             device.property.connectionOption = tempdevice.property.connectionOption;

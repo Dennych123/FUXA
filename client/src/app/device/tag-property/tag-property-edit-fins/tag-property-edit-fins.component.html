@@ -1,0 +1,96 @@
+<form [formGroup]="formGroup" class="container">
+  <h1 mat-dialog-title class="dialog-title" mat-dialog-draggable>
+    {{ 'device.tag-property-title' | translate }}
+  </h1>
+  <mat-icon (click)="onNoClick()" class="dialog-close-btn">clear</mat-icon>
+
+  <div mat-dialog-content>
+    <!-- Device name -->
+    <div class="my-form-field item-block">
+      <span>{{ 'device.tag-property-device' | translate }}</span>
+      <input formControlName="deviceName" type="text" readonly>
+    </div>
+
+    <!-- Tag name -->
+    <div class="my-form-field item-block mt10">
+      <span>{{ 'device.tag-property-name' | translate }}</span>
+      <input formControlName="tagName" type="text">
+    </div>
+
+    <!-- Memory Area (Register) -->
+    <div class="my-form-field item-block mt10">
+      <span>{{ 'device.tag-property-register' | translate }}</span>
+      <mat-select formControlName="tagMemoryAddress" (selectionChange)="onMemoryAddressChange()">
+        <!-- 🔁 Loop otomatis semua area dari memoryRanges -->
+        <mat-option *ngFor="let key of (memoryRanges | keyvalue)" [value]="key.key">
+          {{ key.key }} — {{ key.value.name }}
+        </mat-option>
+      </mat-select>
+      <small class="hint">
+        {{ getAddressRangeText() }}
+      </small>
+    </div>
+
+    <!-- Tag Type -->
+    <div class="my-form-field item-block mt10">
+      <span>{{ 'device.tag-property-type' | translate }}</span>
+      <mat-select formControlName="tagType" (selectionChange)="onTypeChange()">
+        <mat-option value="Bool">Bool</mat-option>
+        <mat-option value="Int16">Int16</mat-option>
+        <mat-option value="UInt16">UInt16</mat-option>
+      </mat-select>
+    </div>
+
+    <!-- Address Word -->
+    <div class="my-form-field item-block mt10">
+      <span>{{ isBoolType ? 'Address Word' : 'Address' }}</span>
+      <input
+        numberOnly
+        formControlName="tagAddress"
+        type="number"
+        [min]="getMinAddress()"
+        [max]="getMaxAddress()"
+        [placeholder]="getAddressPlaceholder()">
+      <mat-error *ngIf="formGroup.get('tagAddress')?.hasError('min') || formGroup.get('tagAddress')?.hasError('max')">
+        {{ getAddressRangeText() }}
+      </mat-error>
+    </div>
+
+    <!-- Address Bit -->
+    <div class="my-form-field item-block mt10" *ngIf="isBoolType">
+      <span>Address Bit</span>
+      <input
+        numberOnly
+        formControlName="tagAddressBit"
+        type="number"
+        min="0"
+        max="15"
+        placeholder="0-15">
+      <mat-error *ngIf="formGroup.get('tagAddressBit')?.hasError('min') || formGroup.get('tagAddressBit')?.hasError('max')">
+        Bit must be between 0–15
+      </mat-error>
+    </div>
+
+    <!-- Divisor -->
+    <div class="my-form-field item-block mt10">
+      <span>{{ 'device.tag-property-divisor' | translate }}</span>
+      <input numberOnly formControlName="tagDivisor" type="number">
+    </div>
+
+    <!-- Description -->
+    <div class="my-form-field item-block mt10">
+      <span>{{ 'device.tag-property-description' | translate }}</span>
+      <input formControlName="tagDescription" type="text">
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div mat-dialog-actions class="dialog-action">
+    <button mat-raised-button (click)="onNoClick()">
+      {{ 'dlg.cancel' | translate }}
+    </button>
+    <button mat-raised-button color="primary" (click)="onOkClick()" [disabled]="formGroup.invalid">
+      {{ 'dlg.ok' | translate }}
+    </button>
+  </div>
+</form>

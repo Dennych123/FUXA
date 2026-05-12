@@ -217,6 +217,7 @@ import { MapsLocationImportComponent } from './maps/maps-location-import/maps-lo
 import { MapsFabButtonMenuComponent } from './maps/maps-view/maps-fab-button-menu/maps-fab-button-menu.component';
 import { TagPropertyEditADSclientComponent } from './device/tag-property/tag-property-edit-adsclient/tag-property-edit-adsclient.component';
 import { TagPropertyEditGpioComponent } from './device/tag-property/tag-property-edit-gpio/tag-property-edit-gpio.component';
+import { TagPropertyEditFinsComponent } from './device/tag-property/tag-property-edit-fins/tag-property-edit-fins.component';
 import { LanguageTypePropertyComponent } from './language/language-type-property/language-type-property.component';
 import { LanguageTextPropertyComponent } from './language/language-text-property/language-text-property.component';
 import { LanguageService } from './_services/language.service';
@@ -269,6 +270,7 @@ export const myCustomTooltipDefaults: MatTooltipDefaultOptions = {
         TagPropertyEditEthernetipComponent,
         TagPropertyEditADSclientComponent,
         TagPropertyEditGpioComponent,
+        TagPropertyEditFinsComponent,
         TagPropertyEditMelsecComponent,
         TagOptionsComponent,
         TopicPropertyComponent,

@@ -251,7 +251,8 @@ export enum DeviceType {
     GPIO = 'GPIO',
     WebCam = 'WebCam',
     MELSEC = 'MELSEC',
-    REDIS = 'REDIS'
+    REDIS = 'REDIS',
+    Fins = 'Fins'
     // Template: 'template'
 }
 
@@ -355,6 +356,11 @@ export class RedisOptions {
             args: []
           }
     };
+}
+
+export enum FinsProtocolType {
+    UDP = 'UDP',
+    TCP = 'TCP'
 }
 
 export enum ModbusOptionType {

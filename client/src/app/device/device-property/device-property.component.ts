@@ -7,7 +7,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { EndPointSettings, HmiService } from '../../_services/hmi.service';
 import { AppService } from '../../_services/app.service';
 import { ProjectService } from '../../_services/project.service';
-import { DeviceType, DeviceSecurity, MessageSecurityMode, SecurityPolicy, ModbusOptionType, ModbusReuseModeType, RedisReadModeType, RedisOptions } from './../../_models/device';
+import { DeviceType, DeviceSecurity, MessageSecurityMode, SecurityPolicy, ModbusOptionType, ModbusReuseModeType, RedisReadModeType, RedisOptions, FinsProtocolType } from './../../_models/device';
 
 @Component({
 	selector: 'app-device-property',
@@ -79,6 +79,7 @@ export class DevicePropertyComponent implements OnInit, OnDestroy {
 	modbusTcpOptionType = [ModbusOptionType.TcpPort, ModbusOptionType.UdpPort, ModbusOptionType.TcpRTUBufferedPort, ModbusOptionType.TelnetPort];
 	modbusReuseModeType = ModbusReuseModeType;
     redisReadModeType = RedisReadModeType;
+    FinsProtocol = [FinsProtocolType.UDP, FinsProtocolType.TCP];
     redisReadModeSimple = RedisReadModeType.simple;
     redisReadModeHash = RedisReadModeType.hash;
     // redisReadModeCustom = RedisReadModeType.custom;
@@ -207,6 +208,13 @@ export class DevicePropertyComponent implements OnInit, OnDestroy {
 			  ? new RedisOptions()
 			  : (opts || new RedisOptions());
 		}
+        if (this.data.device.type === DeviceType.Fins) {
+            if (!this.data.device.property) this.data.device.property = {};
+            if (!this.data.device.property.FinsProtocol) this.data.device.property.FinsProtocol = FinsProtocolType.UDP;
+            if (!this.data.device.property.SA1) this.data.device.property.SA1 = 234;
+            if (!this.data.device.property.DA1) this.data.device.property.DA1 = 1;
+            if (!this.data.device.property.port) this.data.device.property.port = 9600;
+        }
 		this.subscriptionHostInterfaces = this.hmiService.onHostInterfaces.subscribe(res => {
 			if (res.result) {
 				this.hostInterfaces = res;

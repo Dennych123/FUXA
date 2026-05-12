@@ -592,6 +592,30 @@
                         </div>
                     </div>
                 </div>
+                <div *ngSwitchCase="deviceType.Fins">
+                    <div class="my-form-field block mb10">
+                        <span>FINS IP Address</span>
+                        <input [(ngModel)]="data.device.property.address" placeholder="192.168.1.1" style="width: 200px" type="text">
+                    </div>
+                    <div class="my-form-field block mb10">
+                        <span>Port</span>
+                        <input [(ngModel)]="data.device.property.port" placeholder="9600" style="width: 100px" type="number">
+                    </div>
+                    <div class="my-form-field block mb10">
+                        <span>Protocol</span>
+                        <mat-select [(ngModel)]="data.device.property.FinsProtocol" style="width: 120px;">
+                            <mat-option *ngFor="let p of FinsProtocol" [value]="p">{{p}}</mat-option>
+                        </mat-select>
+                    </div>
+                    <div class="my-form-field block mb10">
+                        <span>SA1 (Source Node)</span>
+                        <input [(ngModel)]="data.device.property.SA1" placeholder="234" style="width: 100px" type="number">
+                    </div>
+                    <div class="my-form-field block mb10">
+                        <span>DA1 (Destination Node)</span>
+                        <input [(ngModel)]="data.device.property.DA1" placeholder="1" style="width: 100px" type="number">
+                    </div>
+                </div>
             </div>
         </div>
     </div>

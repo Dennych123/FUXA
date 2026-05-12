@@ -22,6 +22,7 @@ import { TagPropertyEditWebcamComponent, TagPropertyWebcamData } from './tag-pro
 import { TagPropertyEditMelsecComponent } from './tag-property-edit-melsec/tag-property-edit-melsec.component';
 import { TagPropertyEditRedisComponent, TagPropertyRedisData } from './tag-property-edit-redis/tag-property-edit-redis.component';
 import { TagPropertyRedisScanComponent, TagPropertyRedisScanData } from './tag-property-edit-redis/tag-property-redis-scan/tag-property-redis-scan.component';
+import { TagPropertyEditFinsComponent } from './tag-property-edit-fins/tag-property-edit-fins.component';
 
 @Injectable({
     providedIn: 'root'
@@ -517,6 +518,38 @@ export class TagPropertyService {
                         this.checkToAdd(tag, device);
                     } else if (tag.id !== oldTagId) {
                         //remove old tag device reference
+                        delete device.tags[oldTagId];
+                        this.checkToAdd(tag, device);
+                    }
+                    this.projectService.setDeviceTags(device);
+                }
+                dialogRef.close();
+                return result;
+            })
+        );
+    }
+
+    public editTagPropertyFins(device: Device, tag: Tag, checkToAdd: boolean): Observable<any> {
+        let oldTagId = tag.id;
+        let tagToEdit: Tag = Utils.clone(tag);
+        let dialogRef = this.dialog.open(TagPropertyEditFinsComponent, {
+            disableClose: true,
+            data: { device: device, tag: tagToEdit },
+            position: { top: '60px' }
+        });
+        return dialogRef.componentInstance.result.pipe(
+            map(result => {
+                if (result) {
+                    tag.name = result.tagName;
+                    tag.memaddress = result.tagMemoryAddress;
+                    tag.address = result.tagAddress;
+                    tag.type = result.tagType;
+                    tag.bit = result.tagAddressBit;
+                    tag.divisor = result.tagDivisor;
+                    tag.description = result.tagDescription;
+                    if (checkToAdd) {
+                        this.checkToAdd(tag, device);
+                    } else if (tag.id !== oldTagId) {
                         delete device.tags[oldTagId];
                         this.checkToAdd(tag, device);
                     }
