@@ -72,6 +72,8 @@ export class Tag {
     address: string;
     /** Value divisor, used by Modbus */
     divisor: number;
+    /** Bit index within a word, used by FINS Bool type */
+    bit: number;
     /** not used yet */
     access: string;
     /** Options, used for WebAPI and MQTT */
