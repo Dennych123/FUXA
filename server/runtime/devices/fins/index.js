@@ -1,7 +1,10 @@
 'use strict';
 
 const path = require('path');
+const deviceUtils = require('../device-utils');
 let FinsLib = null;
+
+const MAX_BATCH_GAP = 10; // max empty words between tags before splitting into separate batch
 
 function tryLoadFins(manager) {
     try { return require(path.resolve(process.cwd(), '_pkg/mok-omron-fins/omron-fins.cjs')); } catch {}
@@ -23,41 +26,32 @@ function wordCount(type, stringLength) {
 }
 
 /**
- * Convert raw word array from FINS read to a typed JS value.
- * Omron double-word layout: words[0] = low word, words[1] = high word (little-endian word order).
+ * Convert raw word array to typed JS value.
+ * Omron double-word layout: words[0] = low word, words[1] = high word.
  */
 function parseTypedValue(words, type, bit, stringLength) {
     if (!words || words.length === 0) return undefined;
-
     switch (type) {
         case 'Bool':
             return bit !== undefined && bit !== null ? (words[0] >> bit) & 1 : words[0];
-
         case 'UInt16':
             return words[0];
-
         case 'Int16': {
             const v = words[0];
             return v >= 0x8000 ? v - 0x10000 : v;
         }
-
-        case 'DWord': {
+        case 'DWord':
             return (((words[1] & 0xFFFF) * 0x10000) + (words[0] & 0xFFFF)) >>> 0;
-        }
-
         case 'DInt': {
             const u = (((words[1] & 0xFFFF) * 0x10000) + (words[0] & 0xFFFF)) >>> 0;
             return u >= 0x80000000 ? u - 0x100000000 : u;
         }
-
         case 'Real': {
-            // low word in words[0], high word in words[1]
             const buf = Buffer.allocUnsafe(4);
             buf.writeUInt16BE(words[1] & 0xFFFF, 0);
             buf.writeUInt16BE(words[0] & 0xFFFF, 2);
             return buf.readFloatBE(0);
         }
-
         case 'LReal': {
             const buf = Buffer.allocUnsafe(8);
             buf.writeUInt16BE((words[3] || 0) & 0xFFFF, 0);
@@ -66,7 +60,6 @@ function parseTypedValue(words, type, bit, stringLength) {
             buf.writeUInt16BE((words[0] || 0) & 0xFFFF, 6);
             return buf.readDoubleBE(0);
         }
-
         case 'String': {
             let str = '';
             const maxChars = stringLength || 20;
@@ -82,16 +75,53 @@ function parseTypedValue(words, type, bit, stringLength) {
             }
             return str;
         }
-
         default:
             return words[0];
     }
+}
+
+/**
+ * Group tags into contiguous read batches per memory area.
+ * Tags within MAX_BATCH_GAP words of each other are merged into one read.
+ */
+function buildBatches(deviceTags) {
+    const byArea = {};
+    for (const tag of deviceTags) {
+        const area = tag.memaddress || 'D';
+        if (!byArea[area]) byArea[area] = [];
+        byArea[area].push({ tag, addr: parseInt(tag.address) || 0 });
+    }
+
+    const batches = [];
+    for (const area of Object.keys(byArea)) {
+        const sorted = byArea[area].sort((a, b) => a.addr - b.addr);
+        let batch = null;
+
+        for (const item of sorted) {
+            const wc = wordCount(item.tag.type, item.tag.format);
+            if (!batch) {
+                batch = { area, startAddr: item.addr, endAddr: item.addr + wc - 1, items: [item] };
+            } else {
+                const gap = item.addr - batch.endAddr - 1;
+                if (gap <= MAX_BATCH_GAP) {
+                    batch.items.push(item);
+                    batch.endAddr = Math.max(batch.endAddr, item.addr + wc - 1);
+                } else {
+                    batches.push(batch);
+                    batch = { area, startAddr: item.addr, endAddr: item.addr + wc - 1, items: [item] };
+                }
+            }
+        }
+        if (batch) batches.push(batch);
+    }
+    return batches;
 }
 
 function DeviceFins(data, logger, events, manager, runtime) {
     let client = null;
     let values = {};
     let isConnected = false;
+    let working = false;
     let lastTimestampValue = null;
     let reconnectTimer = null;
     let isConnecting = false;
@@ -151,6 +181,7 @@ function DeviceFins(data, logger, events, manager, runtime) {
                     logger.error(`[FINS] Error: ${err}`);
                     isConnected = false;
                     isConnecting = false;
+                    working = false;
                     this.disconnect();
                     this.scheduleReconnect();
                 });
@@ -159,6 +190,7 @@ function DeviceFins(data, logger, events, manager, runtime) {
                     logger.warn('[FINS] Timeout');
                     isConnected = false;
                     isConnecting = false;
+                    working = false;
                     this.disconnect();
                     this.scheduleReconnect();
                 });
@@ -191,6 +223,7 @@ function DeviceFins(data, logger, events, manager, runtime) {
                 reconnectTimer = null;
             }
             isConnected = false;
+            working = false;
             events.emit('device-status:changed', { id: deviceId, status: 'connect-off' });
             resolve();
         });
@@ -200,41 +233,62 @@ function DeviceFins(data, logger, events, manager, runtime) {
     this.isConnected = () => isConnected;
 
     this.polling = async function () {
+        // task #5: working flag — skip if previous poll still running
+        if (working) {
+            logger.warn(`'${data.name}' polling overload, skipping`);
+            return;
+        }
         if (!isConnected || !client || !Array.isArray(deviceTags)) {
-            logger.warn('[FINS] Polling skipped: not connected');
             return;
         }
 
+        working = true;
         const changed = [];
 
-        for (const tag of deviceTags) {
-            try {
-                await new Promise((resolve) => {
-                    const finsAddress = `${tag.memaddress}${tag.address}`;
-                    const count = wordCount(tag.type, tag.format);
+        try {
+            // task #4: batch reads grouped by memory area
+            const batches = buildBatches(deviceTags);
 
+            for (const batch of batches) {
+                const totalWords = batch.endAddr - batch.startAddr + 1;
+                const finsAddress = `${batch.area}${batch.startAddr}`;
+
+                await new Promise((resolve) => {
                     let timeout = setTimeout(() => {
-                        logger.warn(`[FINS] Timeout polling tag ${tag.name}`);
+                        logger.warn(`[FINS] Timeout reading batch ${finsAddress}+${totalWords}`);
                         isConnected = false;
+                        working = false;
                         this.scheduleReconnect();
                         resolve();
                     }, 2500);
 
-                    client.read(finsAddress, count, null, tag.name);
+                    client.read(finsAddress, totalWords, null, finsAddress);
 
                     client.once('reply', (msg) => {
                         clearTimeout(timeout);
-                        const words = msg.response.values;
+                        const allWords = msg.response.values;
+                        if (!allWords) { resolve(); return; }
+
                         const now = Date.now();
                         lastTimestampValue = now;
 
-                        if (words && words.length > 0) {
-                            const val = parseTypedValue(words, tag.type, tag.bit, tag.format);
-                            if (val !== undefined && values[tag.id] !== val) {
-                                values[tag.id] = val;
-                                changed.push({ id: tag.id, value: val });
-                                if (this.addDaq) {
-                                    this.addDaq({ [tag.id]: { id: tag.id, value: val, ts: now } }, deviceName, deviceId);
+                        for (const item of batch.items) {
+                            const offset = item.addr - batch.startAddr;
+                            const wc = wordCount(item.tag.type, item.tag.format);
+                            const words = allWords.slice(offset, offset + wc);
+                            const val = parseTypedValue(words, item.tag.type, item.tag.bit, item.tag.format);
+
+                            if (val !== undefined) {
+                                const prevVal = values[item.tag.id];
+                                item.tag.changed = prevVal !== val;
+                                values[item.tag.id] = val;
+
+                                if (item.tag.changed) {
+                                    changed.push({ id: item.tag.id, value: val });
+                                }
+                                // task #6: respect DAQ interval/changed settings
+                                if (this.addDaq && deviceUtils.tagDaqToSave(item.tag, now)) {
+                                    this.addDaq({ [item.tag.id]: { id: item.tag.id, value: val, ts: now } }, deviceName, deviceId);
                                 }
                             }
                         }
@@ -243,15 +297,18 @@ function DeviceFins(data, logger, events, manager, runtime) {
 
                     client.once('error', (err) => {
                         clearTimeout(timeout);
-                        logger.warn(`[FINS] Error polling tag ${tag.name}: ${err}`);
+                        logger.warn(`[FINS] Error reading batch ${finsAddress}: ${err}`);
                         isConnected = false;
+                        working = false;
                         this.scheduleReconnect();
                         resolve();
                     });
                 });
-            } catch (err) {
-                logger.warn(`[FINS] Polling exception on ${tag.name}: ${err}`);
+
+                if (!isConnected) break;
             }
+        } finally {
+            working = false;
         }
 
         if (changed.length) {
@@ -307,9 +364,9 @@ function DeviceFins(data, logger, events, manager, runtime) {
                 const count = wordCount('String', tag.format);
                 words = new Array(count).fill(0);
                 for (let i = 0; i < str.length && i < (tag.format || 20); i++) {
-                    const wordIdx = Math.floor(i / 2);
-                    if (i % 2 === 0) words[wordIdx] = (str.charCodeAt(i) << 8);
-                    else words[wordIdx] |= str.charCodeAt(i);
+                    const wi = Math.floor(i / 2);
+                    if (i % 2 === 0) words[wi] = (str.charCodeAt(i) << 8);
+                    else words[wi] |= str.charCodeAt(i);
                 }
                 break;
             }
