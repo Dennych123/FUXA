@@ -106,6 +106,7 @@ export class PluginsListComponent implements OnInit, OnDestroy {
         case PluginType.SiemensS7:
         case PluginType.EthernetIP:
         case PluginType.MELSEC:
+        case PluginType.Fins:
             return 'settings_input_component';
         case PluginType.REDIS:
             return 'storage';

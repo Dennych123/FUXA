@@ -304,6 +304,7 @@ function createDefaultPlugins() {
     registry['mcprotocol'] = new Plugin('mcprotocol', './melsec', 'MELSEC', '0.1.2', PluginGroupType.connectionDevice, true);
     registry['node-red'] = new Plugin('node-red', './node-red', 'node-red', '4.1.0', PluginGroupType.service, true);
     registry['redis'] = new Plugin('redis', './redis', 'REDIS', '5.8.2', PluginGroupType.connectionDevice, true);
+    registry['omron-fins'] = new Plugin('omron-fins', './fins', 'Fins', '0.5.0', PluginGroupType.connectionDevice, true);
     return registry;
 }
 

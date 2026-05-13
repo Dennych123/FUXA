@@ -18,7 +18,8 @@ export enum PluginType {
     SiemensS7 = 'SiemensS7',
     EthernetIP = 'EthernetIP',
     MELSEC = 'MELSEC',
-    REDIS = 'REDIS'
+    REDIS = 'REDIS',
+    Fins = 'Fins'
 }
 
 export enum PluginGroupType {
