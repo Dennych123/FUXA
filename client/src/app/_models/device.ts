@@ -365,6 +365,17 @@ export enum FinsProtocolType {
     TCP = 'TCP'
 }
 
+export enum FinsTagType {
+    Bool   = 'Bool',
+    Int16  = 'Int16',
+    UInt16 = 'UInt16',
+    DInt   = 'DInt',
+    DWord  = 'DWord',
+    Real   = 'Real',
+    LReal  = 'LReal',
+    String = 'String'
+}
+
 export enum ModbusOptionType {
     SerialPort = 'SerialPort',
     RTUBufferedPort = 'RTUBufferedPort',

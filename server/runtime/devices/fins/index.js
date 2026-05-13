@@ -12,6 +12,82 @@ function tryLoadFins(manager) {
     return null;
 }
 
+/** Number of 16-bit words needed for each type */
+function wordCount(type, stringLength) {
+    switch (type) {
+        case 'DInt': case 'DWord': case 'Real': return 2;
+        case 'LReal': return 4;
+        case 'String': return Math.ceil((stringLength || 20) / 2);
+        default: return 1; // Bool, Int16, UInt16
+    }
+}
+
+/**
+ * Convert raw word array from FINS read to a typed JS value.
+ * Omron double-word layout: words[0] = low word, words[1] = high word (little-endian word order).
+ */
+function parseTypedValue(words, type, bit, stringLength) {
+    if (!words || words.length === 0) return undefined;
+
+    switch (type) {
+        case 'Bool':
+            return bit !== undefined && bit !== null ? (words[0] >> bit) & 1 : words[0];
+
+        case 'UInt16':
+            return words[0];
+
+        case 'Int16': {
+            const v = words[0];
+            return v >= 0x8000 ? v - 0x10000 : v;
+        }
+
+        case 'DWord': {
+            return (((words[1] & 0xFFFF) * 0x10000) + (words[0] & 0xFFFF)) >>> 0;
+        }
+
+        case 'DInt': {
+            const u = (((words[1] & 0xFFFF) * 0x10000) + (words[0] & 0xFFFF)) >>> 0;
+            return u >= 0x80000000 ? u - 0x100000000 : u;
+        }
+
+        case 'Real': {
+            // low word in words[0], high word in words[1]
+            const buf = Buffer.allocUnsafe(4);
+            buf.writeUInt16BE(words[1] & 0xFFFF, 0);
+            buf.writeUInt16BE(words[0] & 0xFFFF, 2);
+            return buf.readFloatBE(0);
+        }
+
+        case 'LReal': {
+            const buf = Buffer.allocUnsafe(8);
+            buf.writeUInt16BE((words[3] || 0) & 0xFFFF, 0);
+            buf.writeUInt16BE((words[2] || 0) & 0xFFFF, 2);
+            buf.writeUInt16BE((words[1] || 0) & 0xFFFF, 4);
+            buf.writeUInt16BE((words[0] || 0) & 0xFFFF, 6);
+            return buf.readDoubleBE(0);
+        }
+
+        case 'String': {
+            let str = '';
+            const maxChars = stringLength || 20;
+            for (const w of words) {
+                const hi = (w >> 8) & 0xFF;
+                const lo = w & 0xFF;
+                if (hi === 0) break;
+                str += String.fromCharCode(hi);
+                if (str.length >= maxChars) break;
+                if (lo === 0) break;
+                str += String.fromCharCode(lo);
+                if (str.length >= maxChars) break;
+            }
+            return str;
+        }
+
+        default:
+            return words[0];
+    }
+}
+
 function DeviceFins(data, logger, events, manager, runtime) {
     let client = null;
     let values = {};
@@ -135,6 +211,7 @@ function DeviceFins(data, logger, events, manager, runtime) {
             try {
                 await new Promise((resolve) => {
                     const finsAddress = `${tag.memaddress}${tag.address}`;
+                    const count = wordCount(tag.type, tag.format);
 
                     let timeout = setTimeout(() => {
                         logger.warn(`[FINS] Timeout polling tag ${tag.name}`);
@@ -143,22 +220,17 @@ function DeviceFins(data, logger, events, manager, runtime) {
                         resolve();
                     }, 2500);
 
-                    client.read(finsAddress, 1, null, tag.name);
+                    client.read(finsAddress, count, null, tag.name);
 
                     client.once('reply', (msg) => {
                         clearTimeout(timeout);
-                        let val = msg.response.values?.[0];
+                        const words = msg.response.values;
                         const now = Date.now();
                         lastTimestampValue = now;
 
-                        if (val !== undefined) {
-                            if (tag.type === 'Bool' && tag.bit !== undefined && tag.bit !== null) {
-                                val = (val >> tag.bit) & 1;
-                            }
-                            if (tag.divisor && tag.divisor !== 1) {
-                                val = val / tag.divisor;
-                            }
-                            if (values[tag.id] !== val) {
+                        if (words && words.length > 0) {
+                            const val = parseTypedValue(words, tag.type, tag.bit, tag.format);
+                            if (val !== undefined && values[tag.id] !== val) {
                                 values[tag.id] = val;
                                 changed.push({ id: tag.id, value: val });
                                 if (this.addDaq) {
@@ -209,11 +281,47 @@ function DeviceFins(data, logger, events, manager, runtime) {
         if (!client || !tag) return;
 
         const finsAddress = `${tag.memaddress}${tag.address}`;
-        client.write(finsAddress, [value], (err) => {
+        let words;
+
+        switch (tag.type) {
+            case 'DInt':
+            case 'DWord': {
+                const u = (Math.trunc(Number(value)) >>> 0);
+                words = [u & 0xFFFF, (u >> 16) & 0xFFFF];
+                break;
+            }
+            case 'Real': {
+                const buf = Buffer.allocUnsafe(4);
+                buf.writeFloatBE(Number(value), 0);
+                words = [buf.readUInt16BE(2), buf.readUInt16BE(0)];
+                break;
+            }
+            case 'LReal': {
+                const buf = Buffer.allocUnsafe(8);
+                buf.writeDoubleBE(Number(value), 0);
+                words = [buf.readUInt16BE(6), buf.readUInt16BE(4), buf.readUInt16BE(2), buf.readUInt16BE(0)];
+                break;
+            }
+            case 'String': {
+                const str = String(value);
+                const count = wordCount('String', tag.format);
+                words = new Array(count).fill(0);
+                for (let i = 0; i < str.length && i < (tag.format || 20); i++) {
+                    const wordIdx = Math.floor(i / 2);
+                    if (i % 2 === 0) words[wordIdx] = (str.charCodeAt(i) << 8);
+                    else words[wordIdx] |= str.charCodeAt(i);
+                }
+                break;
+            }
+            default:
+                words = [Math.trunc(Number(value)) & 0xFFFF];
+        }
+
+        client.write(finsAddress, words, (err) => {
             if (err) {
-                logger.warn(`[FINS] Failed to write ${value} to ${finsAddress}: ${err}`);
+                logger.warn(`[FINS] Failed to write to ${finsAddress}: ${err}`);
             } else {
-                logger.debug(`[FINS] Wrote ${value} to ${finsAddress}`);
+                logger.debug(`[FINS] Wrote to ${finsAddress}`);
                 values[tagId] = value;
             }
         });

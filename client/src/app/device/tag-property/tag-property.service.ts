@@ -545,7 +545,7 @@ export class TagPropertyService {
                     tag.address = result.tagAddress;
                     tag.type = result.tagType;
                     tag.bit = result.tagAddressBit;
-                    tag.divisor = result.tagDivisor;
+                    tag.format = result.tagType === 'String' ? result.tagStringLength : undefined;
                     tag.description = result.tagDescription;
                     if (checkToAdd) {
                         this.checkToAdd(tag, device);
