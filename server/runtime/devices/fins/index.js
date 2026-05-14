@@ -284,7 +284,7 @@ function DeviceFins(data, logger, events, manager, runtime) {
                                 values[item.tag.id] = val;
 
                                 if (item.tag.changed) {
-                                    changed.push({ id: item.tag.id, value: val });
+                                    changed.push({ id: item.tag.id, value: val, timestamp: now });
                                 }
                                 // task #6: respect DAQ interval/changed settings
                                 if (this.addDaq && deviceUtils.tagDaqToSave(item.tag, now)) {
