@@ -63,7 +63,7 @@ export class TagPropertyEditFinsComponent implements OnInit {
         const type = this.data.tag?.type || FinsTagType.Int16;
         this.formGroup = this.fb.group({
             deviceName:      [{ value: this.data.device?.name || '', disabled: true }],
-            tagName:         [this.data.tag?.name || '', Validators.required],
+            tagName:         [this.data.tag?.name || ''],
             tagMemoryAddress:[this.data.tag?.memaddress || 'D', Validators.required],
             tagType:         [type, Validators.required],
             tagAddress:      [this.data.tag?.address ?? 0, [Validators.required, Validators.min(0)]],
@@ -137,6 +137,14 @@ export class TagPropertyEditFinsComponent implements OnInit {
 
     onOkClick(): void {
         if (this.formGroup.valid) {
+            const v = this.formGroup.getRawValue();
+            if (!v.tagName || !v.tagName.trim()) {
+                const base = (v.tagMemoryAddress || '') + (v.tagAddress ?? 0);
+                v.tagName = this.isBoolType && v.tagAddressBit !== null && v.tagAddressBit !== undefined
+                    ? base + '.' + v.tagAddressBit
+                    : base;
+                this.formGroup.get('tagName')?.setValue(v.tagName);
+            }
             this.result.emit(this.formGroup.getRawValue());
         }
     }

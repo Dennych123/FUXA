@@ -125,6 +125,14 @@
                        [withStaticValue]="false">
         </flex-variable>
     </div>
+    <div style="display: block; padding-top: 5px;padding-left: 25px;"
+        *ngIf="withMomentaryValue(item.action)">
+        <flex-variable style="display: block"
+                       [data]="data"
+                       [(value)]="item.actoptions.variable"
+                       [withStaticValue]="false">
+        </flex-variable>
+    </div>
     <div class="inbk ml15" *ngIf="withAddress(item.action)">
         <div class="my-form-field">
             <span>{{'gauges.property-event-address' | translate}}</span>

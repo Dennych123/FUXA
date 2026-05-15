@@ -187,6 +187,17 @@ export class DeviceTagSelectionComponent implements OnInit, AfterViewInit, OnDes
         return !this.deviceTagNotEditable.includes(type);
     }
 
+    private getTagAddress(tag: Tag, deviceType: DeviceType): string {
+        if (deviceType === DeviceType.Fins) {
+            const base = (tag.memaddress || '') + (tag.address ?? '');
+            if (tag.type === 'Bool' && tag.bit !== null && tag.bit !== undefined) {
+                return base + '.' + tag.bit;
+            }
+            return base;
+        }
+        return tag.address;
+    }
+
     private loadDevicesTags(newTag?: Tag, deviceName?: string) {
         this.tags = [];
         this.devices = Object.values(this.projectService.getDevices());
@@ -200,7 +211,7 @@ export class DeviceTagSelectionComponent implements OnInit, AfterViewInit, OnDes
                             this.tags.push(<TagElement> {
                                 id: t.id,
                                 name: t.name,
-                                address: t.address,
+                                address: this.getTagAddress(t, device.type),
                                 device: device.name,
                                 checked: (t.id === this.data.variableId),
                                 error: null
@@ -211,7 +222,7 @@ export class DeviceTagSelectionComponent implements OnInit, AfterViewInit, OnDes
                             this.tags.push(<TagElement> {
                                 id: t.id,
                                 name: t.name,
-                                address: t.address,
+                                address: this.getTagAddress(t, device.type),
                                 device: device.name,
                                 checked: (t.id === this.data.variableId),
                                 error: null

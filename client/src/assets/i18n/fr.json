@@ -764,6 +764,7 @@
   "shapes.event-address-link": "Lien",
   "shapes.event-address-resource": "Ressource",
   "shapes.event-onmonitor": "Moniteur",
+    "shapes.event-onmomentary": "Momentary",
   "shapes.event-onViewToPanel": "Définir la vue sur le panneau",
   "shapes.event-onLoad": "Au chargement",
   "shapes.event-relativefrom-window": "Fenêtre",

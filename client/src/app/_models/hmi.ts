@@ -399,6 +399,7 @@ export enum GaugeEventActionType {
     onRunScript = 'shapes.event-onrunscript',
     onViewToPanel = 'shapes.event-onViewToPanel',
     onMonitor = 'shapes.event-onmonitor',
+    onMomentary = 'shapes.event-onmomentary',
 }
 
 export enum ViewEventType {

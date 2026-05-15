@@ -562,6 +562,29 @@ export class FuxaViewComponent implements OnInit, AfterViewInit, OnDestroy {
                     self.runEvents(self, ga, ev, mouseOutEvents);
                 });
             }
+            const allGaugeEvents = self.gaugesManager.getBindMouseEvent(ga, null) || [];
+            const momentaryEvents = allGaugeEvents.filter(ev =>
+                ev.action === Utils.getEnumKey(GaugeEventActionType, GaugeEventActionType.onMomentary)
+            );
+            if (momentaryEvents.length > 0) {
+                svgele.mousedown(function() {
+                    momentaryEvents.forEach(e => self.onMomentaryPress(ga, e, 1));
+                    const release = function() {
+                        momentaryEvents.forEach(e => self.onMomentaryPress(ga, e, 0));
+                        document.removeEventListener('mouseup', release);
+                    };
+                    document.addEventListener('mouseup', release);
+                });
+                svgele.touchstart(function(ev) {
+                    momentaryEvents.forEach(e => self.onMomentaryPress(ga, e, 1));
+                    const release = function() {
+                        momentaryEvents.forEach(e => self.onMomentaryPress(ga, e, 0));
+                        document.removeEventListener('touchend', release);
+                    };
+                    document.addEventListener('touchend', release);
+                    ev.preventDefault();
+                });
+            }
         }
     }
 
@@ -605,6 +628,13 @@ export class FuxaViewComponent implements OnInit, AfterViewInit, OnDestroy {
             this.gaugesManager.toggleSignalValue(actionOptions.variable.variableId, actionOptions.variable.bitmask);
         } else if (ga.property && ga.property.variableId) {
             this.gaugesManager.toggleSignalValue(ga.property.variableId);
+        }
+    }
+
+    onMomentaryPress(ga: GaugeSettings, event: GaugeEvent, value: number) {
+        const variableId = this.fetchVariableId(event) || ga.property?.variableId;
+        if (variableId) {
+            this.gaugesManager.putSignalValue(variableId, value.toString());
         }
     }
 

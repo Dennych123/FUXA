@@ -763,6 +763,7 @@
     "shapes.event-address-link": "Länk",
     "shapes.event-address-resource": "Resurs",
     "shapes.event-onmonitor": "Övervaka",
+    "shapes.event-onmomentary": "Momentary",
     "shapes.event-onViewToPanel": "Sätt vy till panel",
     "shapes.event-onLoad": "Vid inladdning",
     "shapes.event-relativefrom-window": "Fönster",

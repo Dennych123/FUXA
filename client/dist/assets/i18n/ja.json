@@ -784,6 +784,7 @@
     "shapes.event-address-link": "リンク",
     "shapes.event-address-resource": "リソース",
     "shapes.event-onmonitor": "モニター",
+    "shapes.event-onmomentary": "Momentary",
     "shapes.event-onViewToPanel": "ビューをパネルに設定",
     "shapes.event-onLoad": "読み込み時",
     "shapes.event-relativefrom-window": "ウィンドウ",

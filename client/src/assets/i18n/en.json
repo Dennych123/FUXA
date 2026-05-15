@@ -884,6 +884,7 @@
     "shapes.event-address-link": "Link",
     "shapes.event-address-resource": "Resource",
     "shapes.event-onmonitor": "Monitor",
+    "shapes.event-onmomentary": "Momentary",
     "shapes.event-onViewToPanel": "Set View to Panel",
     "shapes.event-onLoad": "OnLoad",
     "shapes.event-relativefrom-window": "Window",

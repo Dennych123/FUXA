@@ -766,6 +766,7 @@
     "shapes.event-address-link": "連結",
     "shapes.event-address-resource": "資源",
     "shapes.event-onmonitor": "監控",
+    "shapes.event-onmomentary": "Momentary",
     "shapes.event-onViewToPanel": "設定視圖至面板",
     "shapes.event-onLoad": "載入",
     "shapes.event-relativefrom-window": "視窗",

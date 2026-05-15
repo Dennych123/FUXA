@@ -269,7 +269,7 @@ export class DeviceListComponent implements OnInit, AfterViewInit {
             }
             return tag.address;
         } else if (this.deviceSelected.type === DeviceType.Fins) {
-            const base = (tag.memaddress || '') + (tag.address || '');
+            const base = (tag.memaddress || '') + (tag.address ?? '');
             if (tag.type === 'Bool' && tag.bit !== null && tag.bit !== undefined) {
                 return base + '.' + tag.bit;
             }
